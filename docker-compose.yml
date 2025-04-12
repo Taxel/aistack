@@ -6,19 +6,49 @@ services:
     volumes:
       - ./data/ollama:/root/.ollama
     container_name: ollama
-    pull_policy: always
+    #pull_policy: always
     tty: true
     restart: unless-stopped
     image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    networks:
+      - aistack-net
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
   openwebui:
     image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_DOCKER_TAG-latest}
     volumes:
       - ./data/open-webui:/app/backend/data
-    ports:
-      - ${OPEN_WEBUI_PORT-3000}:8080
     environment:
       - 'OLLAMA_BASE_URL=http://ollama:11434'
       - 'WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}'
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    depends_on:
+      - ollama
     restart: unless-stopped
+    networks:
+      - aistack-net
+    runtime: nvidia
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-reverse-proxy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./container/nginx/conf:/etc/nginx/conf.d:ro
+      - ./container/nginx/certs:/etc/nginx/certs
+      - ./container/nginx/init:/docker-entrypoint-init.d:ro
+    command: [ "/bin/bash", "/docker-entrypoint-init.d/startup.sh" ]
+    depends_on:
+      - openwebui
+    networks:
+      - aistack-net
+
+networks:
+  aistack-net:
+    driver: bridge

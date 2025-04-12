@@ -1,2 +1,4 @@
 data
 .env
+container/nginx/certs/*.crt
+container/nginx/certs/*.key
