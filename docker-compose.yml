@@ -26,6 +26,22 @@ services:
       - 'WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}'
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - USE_CUDA_DOCKER=True
+      - ENABLE_RAG_WEB_SEARCH=True
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
+      - ENABLE_CODE_INTERPRETER=True
+      - CODE_EXECUTION_ENGINE=jupyter
+      - CODE_EXECUTION_JUPYTER_URL=http://jupyter:8888
+      - CODE_EXECUTION_JUPYTER_AUTH=token
+      - CODE_EXECUTION_JUPYTER_AUTH_TOKEN=${JUPYTER_TOKEN-123456}
+      - CODE_EXECUTION_JUPYTER_TIMEOUT=60
+      - CODE_INTERPRETER_ENGINE=jupyter
+      - CODE_INTERPRETER_JUPYTER_URL=http://jupyter:8888
+      - CODE_INTERPRETER_JUPYTER_AUTH=token
+      - CODE_INTERPRETER_JUPYTER_AUTH_TOKEN=${JUPYTER_TOKEN-123456}
+      - CODE_INTERPRETER_JUPYTER_TIMEOUT=60
+
     depends_on:
       - ollama
     restart: unless-stopped
@@ -33,19 +49,45 @@ services:
       - aistack-net
     runtime: nvidia
 
-  nginx:
-    image: nginx:latest
-    container_name: nginx-reverse-proxy
-    restart: unless-stopped
+  caddy:
+    image: caddy:alpine
+    container_name: caddy
     ports:
+      - "80:80"
       - "443:443"
     volumes:
-      - ./container/nginx/conf:/etc/nginx/conf.d:ro
-      - ./container/nginx/certs:/etc/nginx/certs
-      - ./container/nginx/init:/docker-entrypoint-init.d:ro
-    command: [ "/bin/bash", "/docker-entrypoint-init.d/startup.sh" ]
+      - ./container/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./data/caddy:/data
+      - ./data/caddy_config:/config
+    networks:
+      - aistack-net
+    restart: unless-stopped
     depends_on:
       - openwebui
+      - jupyter
+
+  searxng:
+    image: searxng/searxng:${SEARXNG_DOCKER_TAG-latest}
+    container_name: searxng
+    restart: unless-stopped
+    volumes:
+      - ./data/searxng:/etc/searxng
+    environment:
+      - BASE_URL=http://searxng:8080
+      - INSTANCE_NAME=searxng-docker
+    networks:
+      - aistack-net
+
+  jupyter:
+    image: jupyter/minimal-notebook:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/jupyter:/home/jovyan/work
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN-123456}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     networks:
       - aistack-net
 

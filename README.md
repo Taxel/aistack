@@ -37,7 +37,7 @@ Whether you're into LLMs, chat agents, image generation, or prompt engineering â
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/aistack.git
+git clone https://github.com/Taxel/aistack.git
 cd aistack
 ```
 
@@ -59,9 +59,20 @@ If no certificates exist, the Nginx container will generate self-signed certs at
 docker compose up -d
 ```
 
-> On first run, Ollama may download a model if you interact with one that isn't present locally.
+> On first run, Ollama may download a model if you interact with one that isn't present locally. You also may have to download the model in the admin settings first.
 
-### 5. Add hostnames to your system
+### 5. Edit `data/searxng/settings.ini` and add the following:
+```
+search:
+  # remove format to deny access, use lower case.
+  # formats: [html, csv, json, rss]
+  formats:
+    - html
+    - json
+```
+(add the `json`)
+
+### 6. Add hostnames to your system (not necessary for WSL2)
 
 Edit `/etc/hosts` (Linux/macOS) or `C:\Windows\System32\drivers\etc\hosts` (Windows) and add:
 
