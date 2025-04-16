@@ -1,0 +1,36 @@
+# This block serves HTTPS for openwebui.localhost
+openwebui.localhost {
+    reverse_proxy openwebui:8080
+    tls internal  # Use self-signed certs for local dev. Remove this line for Let's Encrypt.
+    header {
+        # Set headers similar to Nginx config
+        X-Real-IP {remote}
+        X-Forwarded-For {remote}
+        X-Forwarded-Proto {scheme}
+        X-Forwarded-Host {host}
+        X-Forwarded-Port {server_port}
+    }
+    
+}
+
+# This block redirects HTTP to HTTPS for openwebui.localhost
+http://openwebui.localhost {
+    redir https://openwebui.localhost{uri} permanent
+}
+
+# This block configures the reverse proxy for jupyter.localhost
+jupyter.localhost {
+    reverse_proxy jupyter:8888
+    tls internal  # Use self-signed certs for local dev. Remove this line for Let's Encrypt.
+    header {
+        X-Real-IP {remote}
+        X-Forwarded-For {remote}
+        X-Forwarded-Proto {scheme}
+        X-Forwarded-Host {host}
+        X-Forwarded-Port {server_port}
+    }
+}
+
+http://jupyter.localhost {
+    redir https://jupyter.localhost{uri} permanent
+}
