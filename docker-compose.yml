@@ -21,6 +21,7 @@ services:
     image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_DOCKER_TAG-latest}
     volumes:
       - ./data/open-webui:/app/backend/data
+      - ./data/knowledge:/mnt/knowledge
     environment:
       - 'OLLAMA_BASE_URL=http://ollama:11434'
       - 'WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}'
@@ -82,19 +83,26 @@ services:
     image: jupyter/minimal-notebook:latest
     restart: unless-stopped
     volumes:
-      - ./data/jupyter:/home/jovyan/work
+      - ./data/jupyter:/home/jupyternb
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - JUPYTER_TOKEN=${JUPYTER_TOKEN-123456}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NB_UID=1000
+      - NB_GID=100
+      - CHOWN_HOME=yes
+    working_dir: /home/jupyternb
     networks:
       - aistack-net
 
   pipelines:
     image: ghcr.io/open-webui/pipelines:main-cuda
+    container_name: pipelines
     volumes:
       - ./data/pipelines:/app/pipelines
+      - ./data/knowledge:/app/knowledge
     restart: unless-stopped
     environment:
       - PIPELINES_API_KEY=0p3n-w3bu!
